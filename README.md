@@ -1,5 +1,7 @@
 # Loan Calculator
 
+**English** | [简体中文](./README.cn.md)
+
 A single-page loan tracker. Enter a loan, apply custom penalty-rate (罚息) windows, log partial repayments, and see how every payment splits between interest (利息) and principal (本金), with running balances. Each calculation is saved as a named **session** you can return to later.
 
 No build step and no runtime dependencies (apart from Google Fonts). Open `index.html` and use it.
