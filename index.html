@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Loan Calculator</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="mark"></div>
+    <div>
+      <p class="eyebrow">Loan ledger · simple interest · Art. 561 allocation</p>
+      <h1>Loan Calculator</h1>
+      <p class="sub">Track a loan from disbursement to repayment. Apply custom 罚息 windows, log partial repayments, and see how every yuan splits between interest (利息) and principal (本金). Each calculation is saved as a session you can return to.</p>
+    </div>
+  </header>
+
+  <section class="card session-bar full">
+    <div class="session-controls">
+      <div class="field session-pick">
+        <label for="sessionSelect">Session</label>
+        <select id="sessionSelect"></select>
+      </div>
+      <div class="field session-name-field">
+        <label for="sessionName">Name</label>
+        <input type="text" id="sessionName" maxlength="60" placeholder="Name this loan" />
+      </div>
+      <div class="session-actions">
+        <button class="btn ghost small" id="newSession">+ New</button>
+        <button class="btn ghost small" id="dupSession">Duplicate</button>
+        <button class="btn ghost small danger" id="delSession">Delete</button>
+      </div>
+    </div>
+    <div class="save-status" id="saveStatus"><span class="dot"></span></div>
+  </section>
+
+  <div class="grid">
+
+    <section class="card">
+      <div class="card-head"><h2>Loan setup</h2></div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="principal">Loan amount (本金, CNY)</label>
+          <input type="number" id="principal" min="0" step="0.01" />
+        </div>
+        <div class="field">
+          <label for="baseRate">Annual rate (年利率, %)</label>
+          <input type="number" id="baseRate" min="0" step="0.01" />
+        </div>
+        <div class="field">
+          <label for="startDate">Start date (起息日)</label>
+          <input type="date" id="startDate" />
+        </div>
+        <div class="field">
+          <label for="endDate">Maturity (到期日)</label>
+          <input type="date" id="endDate" />
+        </div>
+        <div class="field">
+          <label for="asOfDate">As-of date (计算截止日)</label>
+          <input type="date" id="asOfDate" />
+          <span class="hint">defaults to today; can be any date ≥ start</span>
+        </div>
+        <div class="field">
+          <label>Day basis</label>
+          <div class="toggle" role="tablist" id="basisToggle">
+            <button type="button" data-val="365" class="on">365 days</button>
+            <button type="button" data-val="360">360 days</button>
+          </div>
+          <span class="hint">365 is the 民间借贷 convention; 360 follows the PBOC bank-loan notice.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Penalty windows <span class="count" id="penaltyCount"></span></h2>
+        <button class="btn ghost small" id="addPenalty">+ Add window</button>
+      </div>
+      <div id="penaltyList"></div>
+    </section>
+
+    <section class="card full">
+      <div class="card-head">
+        <h2>Repayments <span class="count" id="repaymentCount"></span></h2>
+        <button class="btn ghost small" id="addRepayment">+ Add repayment</button>
+      </div>
+      <div id="repaymentList"></div>
+    </section>
+
+    <section class="card full">
+      <div class="card-head"><h2>Summary</h2></div>
+      <div id="errorBox"></div>
+      <div class="summary">
+        <div class="stat crail">
+          <p class="label">Outstanding principal · 本金余额</p>
+          <p class="num"><span class="cur">¥</span><span id="sumPrincipal">0.00</span></p>
+        </div>
+        <div class="stat peach">
+          <p class="label">Accrued unpaid interest · 应计未付利息</p>
+          <p class="num"><span class="cur">¥</span><span id="sumAccrued">0.00</span></p>
+        </div>
+        <div class="stat">
+          <p class="label">Interest paid · 已付利息</p>
+          <p class="num"><span class="cur">¥</span><span id="sumIntPaid">0.00</span></p>
+        </div>
+        <div class="stat">
+          <p class="label">Principal paid · 已付本金</p>
+          <p class="num"><span class="cur">¥</span><span id="sumPrinPaid">0.00</span></p>
+        </div>
+      </div>
+      <div class="total-line">
+        <span>Total owed at <span id="asOfLabel">as-of date</span></span>
+        <span class="big"><span style="color:var(--cloudy);font-weight:500;font-size:14px;">¥</span> <span id="sumOwed">0.00</span></span>
+      </div>
+      <div class="total-line" id="overpaymentLine" style="display:none;">
+        <span style="color:var(--ok);">Overpayment (credit to lender)</span>
+        <span class="big" style="color:var(--ok);"><span style="color:var(--cloudy);font-weight:500;font-size:14px;">¥</span> <span id="sumOver">0.00</span></span>
+      </div>
+    </section>
+
+    <section class="card full">
+      <div class="card-head">
+        <h2>Schedule</h2>
+        <div class="tools">
+          <button class="btn ghost small" id="loadExample">Load example</button>
+          <button class="btn small" id="runTests">Run self-tests</button>
+        </div>
+      </div>
+      <div id="scheduleArea"></div>
+      <div id="testResults" class="test-results" style="display:none;"></div>
+    </section>
+
+  </div>
+
+  <p class="footer">Palette by Anthropic — Pampas, Book cloth, Peach, Crail, Cloudy, Slate, Dark. Allocation order per PRC Civil Code Art. 561 (interest first, principal second). Simple interest; not legal or financial advice.</p>
+</div>
+
+<script src="js/engine.js"></script>
+<script src="js/fixtures.js"></script>
+<script src="js/store.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

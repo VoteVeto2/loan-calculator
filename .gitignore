@@ -1,0 +1,12 @@
+# Dependencies (jsdom is a dev-only dependency for the DOM test)
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

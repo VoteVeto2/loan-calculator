@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>PRD — Loan Calculator</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --pampas: #F4F3EE;
+    --cream: #EFEBE0;
+    --crail: #C15F3C;
+    --peach: #D97757;
+    --bookcloth: #D4A27F;
+    --cloudy: #B1ADA1;
+    --slate: #3A3936;
+    --dark: #141413;
+    --line: rgba(20,20,19,0.12);
+    --code-bg: #1d1c1a;
+    --ok: #6E8B57;
+    --warn: #B27A3E;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--pampas);
+    color: var(--dark);
+    font-family: 'Lora', Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    line-height: 1.65;
+    letter-spacing: 0.005em;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 56px 32px 96px; }
+  header.hero {
+    border-left: 4px solid var(--crail);
+    padding: 6px 0 6px 22px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-family: 'Poppins', system-ui, Arial, sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--crail);
+    margin: 0 0 8px;
+  }
+  h1 {
+    font-family: 'Poppins', system-ui, Arial, sans-serif;
+    font-weight: 600;
+    font-size: 40px;
+    line-height: 1.1;
+    margin: 0 0 12px;
+    color: var(--dark);
+  }
+  h2 {
+    font-family: 'Poppins', system-ui, Arial, sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    margin: 44px 0 14px;
+    color: var(--dark);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+  }
+  h3 {
+    font-family: 'Poppins', system-ui, Arial, sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    margin: 24px 0 8px;
+    color: var(--slate);
+  }
+  p { margin: 0 0 12px; }
+  .lede { font-size: 19px; color: var(--slate); }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  code, kbd {
+    font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    font-size: 14px;
+    background: rgba(193,95,60,0.10);
+    color: var(--crail);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  pre {
+    background: var(--code-bg);
+    color: #f4f3ee;
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px;
+    font-size: 14.5px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-family: 'Poppins', system-ui, sans-serif;
+    font-weight: 600;
+    color: var(--slate);
+    background: rgba(212,162,127,0.18);
+  }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .swatch-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 6px 0 18px; }
+  .swatch {
+    width: 130px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    background: white;
+  }
+  .swatch .chip { height: 56px; }
+  .swatch .meta { padding: 8px 10px; font-size: 12px; }
+  .swatch .name {
+    font-family: 'Poppins', system-ui, sans-serif;
+    font-weight: 600;
+    color: var(--dark);
+    display: block;
+  }
+  .swatch .hex { color: var(--slate); font-family: 'JetBrains Mono', monospace; }
+  .callout {
+    border-left: 3px solid var(--peach);
+    background: rgba(217,119,87,0.08);
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .callout strong { color: var(--crail); }
+  .test-card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin: 12px 0;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+  .test-card h3 { margin-top: 0; color: var(--crail); }
+  .meta-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--slate);
+    margin: 0 0 8px;
+  }
+  .footer {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--cloudy);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Product Requirements · v1.0</p>
+  <h1>Loan Calculator</h1>
+  <p class="lede">A single-page loan tracker for principal, base interest, and custom penalty-rate windows, with running allocation of partial repayments to interest and principal under Civil Code Art. 561 order.</p>
+</header>
+
+<section>
+  <h2>1. Goal</h2>
+  <p>Give a lender or borrower an interactive worksheet that:</p>
+  <ol>
+    <li>Accepts a loan: <strong>principal</strong>, <strong>start date</strong>, <strong>maturity date</strong>, <strong>base annual rate</strong>.</li>
+    <li>Accepts zero-or-more <strong>penalty windows</strong> — intervals with a custom annual rate (典型用途: 罚息利率 for the overdue period or an agreed step-up).</li>
+    <li>Accepts zero-or-more <strong>repayment events</strong> — a date and an amount.</li>
+    <li>Computes, at every event, how much of each repayment went to <strong>interest</strong> (利息) vs. <strong>principal</strong> (本金), and the running remainders.</li>
+    <li>Renders a clean schedule and a totals summary, in Anthropic's warm palette.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>2. Non-goals</h2>
+  <ul>
+    <li>No compounding interest (no 计入本金 of unpaid interest). Simple interest by day count.</li>
+    <li>No multi-currency, FX, or amortization schedule generation (equal-payment 等额本息 / 等额本金).</li>
+    <li>No persistence beyond the browser session (no backend, no login).</li>
+    <li>No statutory cap enforcement (LPR × 4 etc.) — surfaced as an informational warning only.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>3. Visual language</h2>
+  <p>Palette is drawn from Anthropic's brand system — Pampas cream paper, Crail orange as the structural accent, Book cloth tan for secondary surfaces, Cloudy gray for hairlines and metadata, Dark for primary text. Type is Poppins (geometric sans) for UI and headings, Lora (humanist serif) for figures and prose.</p>
+  <div class="swatch-row">
+    <div class="swatch"><div class="chip" style="background:#F4F3EE"></div><div class="meta"><span class="name">Pampas</span><span class="hex">#F4F3EE</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#EFEBE0"></div><div class="meta"><span class="name">Cream</span><span class="hex">#EFEBE0</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#D4A27F"></div><div class="meta"><span class="name">Book cloth</span><span class="hex">#D4A27F</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#D97757"></div><div class="meta"><span class="name">Peach</span><span class="hex">#D97757</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#C15F3C"></div><div class="meta"><span class="name">Crail</span><span class="hex">#C15F3C</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#B1ADA1"></div><div class="meta"><span class="name">Cloudy</span><span class="hex">#B1ADA1</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#3A3936"></div><div class="meta"><span class="name" style="color:white;background:#3A3936;padding:2px 6px;border-radius:3px;">Slate</span><span class="hex">#3A3936</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#141413"></div><div class="meta"><span class="name" style="color:white;background:#141413;padding:2px 6px;border-radius:3px;">Dark</span><span class="hex">#141413</span></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>4. Data model</h2>
+<pre><code>Loan {
+  principal:   number   // CNY, &gt; 0
+  startDate:   ISO date // YYYY-MM-DD
+  endDate:     ISO date // maturity; must be &gt; startDate
+  baseRate:    number   // annual, decimal (0.06 = 6%)
+  dayBasis:    365 | 360
+  asOf:        ISO date // calc-as-of date; default = today
+}
+
+PenaltyWindow {
+  id:          string
+  start:       ISO date
+  end:         ISO date
+  rate:        number   // annual, decimal
+  // semantics: any time inside [start, end) overrides baseRate
+}
+
+Repayment {
+  id:          string
+  date:        ISO date // must be &gt;= loan.startDate
+  amount:      number   // &gt; 0, CNY
+}</code></pre>
+</section>
+
+<section>
+  <h2>5. Computation rules</h2>
+
+  <h3>5.1 Day count</h3>
+  <p>Days between two ISO dates = floor((d2 − d1) / 86,400,000), using UTC midnight. Half-open: the start date is counted, the end date is not (so 2025-01-01 to 2025-12-31 = 364 days). User-toggleable basis: 365 (default, 民间借贷 convention) or 360 (金融机构 convention per the PBOC notice).</p>
+
+  <h3>5.2 Daily rate</h3>
+  <p><code>dailyRate(d) = applicableAnnualRate(d) / dayBasis</code>, where <code>applicableAnnualRate(d)</code> is the rate of the penalty window covering <code>d</code>, otherwise <code>baseRate</code>. If multiple penalty windows overlap, the one declared later wins.</p>
+
+  <h3>5.3 Accrual between events</h3>
+  <p>The timeline is split at every "event boundary": <code>startDate</code>, every penalty-window start/end, every repayment date, and <code>asOf</code>. Within each segment, simple interest accrues:</p>
+  <pre><code>segmentInterest = principalAtSegmentStart * dailyRate(segment) * segmentDays</code></pre>
+  <p>Accrued unpaid interest carries forward; it is NOT capitalized into principal.</p>
+
+  <h3>5.4 Repayment allocation (Civil Code Art. 561)</h3>
+  <p>On a repayment date, after accruing interest up to that date, allocate the payment in order:</p>
+  <ol>
+    <li><strong>Interest first</strong> — apply payment to outstanding accrued interest; if payment ≥ accrued interest, accrued interest goes to 0 and we move on.</li>
+    <li><strong>Principal next</strong> — remaining payment reduces outstanding principal.</li>
+    <li><strong>Overage</strong> — if payment exceeds principal + accrued interest, the excess is shown as an "overpayment" credit; the loan is closed.</li>
+  </ol>
+
+  <h3>5.5 Totals</h3>
+  <ul>
+    <li><code>totalInterestPaid</code> = sum of the interest portions of every repayment.</li>
+    <li><code>totalPrincipalPaid</code> = sum of the principal portions of every repayment.</li>
+    <li><code>outstandingPrincipal</code> = principal − totalPrincipalPaid.</li>
+    <li><code>accruedUnpaidInterest</code> = interest accrued from last event to <code>asOf</code> minus interest already paid.</li>
+    <li><code>totalOwedAsOf</code> = outstandingPrincipal + accruedUnpaidInterest.</li>
+  </ul>
+
+  <div class="callout">
+    <strong>Rounding policy.</strong> All arithmetic is carried in IEEE-754 doubles to full precision. Display values are rounded to 2 decimals using banker's rounding only at render time, so successive operations do not accumulate rounding error.
+  </div>
+</section>
+
+<section>
+  <h2>6. UI</h2>
+  <h3>6.1 Layout</h3>
+  <ol>
+    <li><strong>Header</strong> — title + tagline, Crail accent bar.</li>
+    <li><strong>Loan setup card</strong> — 4 inputs (principal, start, end, annual rate) + day-basis toggle + as-of date.</li>
+    <li><strong>Penalty windows card</strong> — table of windows with "+ Add window" button.</li>
+    <li><strong>Repayments card</strong> — table of repayments with "+ Add repayment" button.</li>
+    <li><strong>Schedule</strong> — chronological event ledger: every accrual segment and every repayment, with running balances.</li>
+    <li><strong>Summary</strong> — four big numbers: outstanding principal, accrued unpaid interest, total interest paid, total principal paid.</li>
+  </ol>
+
+  <h3>6.2 Interaction</h3>
+  <ul>
+    <li>Every input change triggers an immediate recompute (no "Calculate" button).</li>
+    <li>Invalid dates / negative amounts are flagged inline; they do not block recompute of the rest.</li>
+    <li>Rows are removable; the schedule rebuilds.</li>
+    <li>A "Load example" link populates Test Case 2 (the most illustrative).</li>
+  </ul>
+</section>
+
+<section>
+  <h2>7. Edge cases</h2>
+  <ul>
+    <li><strong>Repayment before loan start</strong> — ignored, flagged red.</li>
+    <li><strong>Repayment after as-of date</strong> — accepted but only counted if its date ≤ as-of.</li>
+    <li><strong>As-of before some repayments</strong> — those repayments are not yet applied.</li>
+    <li><strong>Overpayment</strong> — excess is shown explicitly; no negative balances rendered.</li>
+    <li><strong>Penalty window outside loan period</strong> — clipped to [startDate, asOf].</li>
+    <li><strong>Same-day repayment and penalty boundary</strong> — penalty boundary applied first (interest accrues up to repayment), then payment.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>8. Acceptance tests</h2>
+  <p>All five must produce the figures below (rounded to two decimals, 365-day basis).</p>
+
+  <div class="test-card">
+    <h3>Test 1 — Simple, no repayments, no penalty</h3>
+    <p class="meta-line">P=100,000 · start=2025-01-01 · asOf=2025-12-31 · rate=6.00% · basis=365</p>
+    <table>
+      <tr><th>Metric</th><th class="num">Expected</th></tr>
+      <tr><td>Days accrued</td><td class="num">364</td></tr>
+      <tr><td>Accrued unpaid interest</td><td class="num">5,983.56</td></tr>
+      <tr><td>Outstanding principal</td><td class="num">100,000.00</td></tr>
+      <tr><td>Total owed</td><td class="num">105,983.56</td></tr>
+    </table>
+  </div>
+
+  <div class="test-card">
+    <h3>Test 2 — Single mid-year repayment, no penalty</h3>
+    <p class="meta-line">P=100,000 · start=2025-01-01 · asOf=2025-12-31 · rate=6.00% · repay {2025-07-01, 50,000}</p>
+    <table>
+      <tr><th>Metric</th><th class="num">Expected</th></tr>
+      <tr><td>Interest accrued by 2025-07-01 (181 d)</td><td class="num">2,975.34</td></tr>
+      <tr><td>Repayment 2025-07-01 → interest</td><td class="num">2,975.34</td></tr>
+      <tr><td>Repayment 2025-07-01 → principal</td><td class="num">47,024.66</td></tr>
+      <tr><td>Outstanding principal after 2025-07-01</td><td class="num">52,975.34</td></tr>
+      <tr><td>Interest accrued 07-01 → 12-31 (183 d)</td><td class="num">1,593.61</td></tr>
+      <tr><td>Total interest paid</td><td class="num">2,975.34</td></tr>
+      <tr><td>Total owed at as-of</td><td class="num">54,568.96</td></tr>
+    </table>
+  </div>
+
+  <div class="test-card">
+    <h3>Test 3 — Penalty window mid-period, no repayments</h3>
+    <p class="meta-line">P=100,000 · start=2025-01-01 · asOf=2025-12-31 · rate=6.00% · penalty {2025-04-01 → 2025-07-01, 12.00%}</p>
+    <table>
+      <tr><th>Metric</th><th class="num">Expected</th></tr>
+      <tr><td>Segment 1 — 01-01 → 04-01 (90 d) @ 6%</td><td class="num">1,479.45</td></tr>
+      <tr><td>Segment 2 — 04-01 → 07-01 (91 d) @ 12%</td><td class="num">2,991.78</td></tr>
+      <tr><td>Segment 3 — 07-01 → 12-31 (183 d) @ 6%</td><td class="num">3,008.22</td></tr>
+      <tr><td>Total accrued interest</td><td class="num">7,479.45</td></tr>
+      <tr><td>Outstanding principal</td><td class="num">100,000.00</td></tr>
+    </table>
+  </div>
+
+  <div class="test-card">
+    <h3>Test 4 — Full payoff at maturity</h3>
+    <p class="meta-line">P=50,000 · start=2025-01-01 · end=2025-06-30 · asOf=2025-06-30 · rate=8.00% · repay {2025-06-30, 51,972.60}</p>
+    <table>
+      <tr><th>Metric</th><th class="num">Expected</th></tr>
+      <tr><td>Accrued interest at payoff (180 d)</td><td class="num">1,972.60</td></tr>
+      <tr><td>Repayment → interest</td><td class="num">1,972.60</td></tr>
+      <tr><td>Repayment → principal</td><td class="num">50,000.00</td></tr>
+      <tr><td>Outstanding principal after</td><td class="num">0.00</td></tr>
+      <tr><td>Total owed</td><td class="num">0.00</td></tr>
+    </table>
+  </div>
+
+  <div class="test-card">
+    <h3>Test 5 — Overdue with penalty + partial repayment</h3>
+    <p class="meta-line">P=200,000 · start=2025-01-01 · end=2025-06-30 · asOf=2025-12-31 · rate=5.00% · penalty {2025-07-01 → 2026-01-01, 10.00%} · repay {2025-09-30, 50,000}</p>
+    <table>
+      <tr><th>Metric</th><th class="num">Expected</th></tr>
+      <tr><td>Phase 1 — 01-01 → 07-01 (181 d) @ 5%</td><td class="num">4,958.90</td></tr>
+      <tr><td>Phase 2 — 07-01 → 09-30 (91 d) @ 10%</td><td class="num">4,986.30</td></tr>
+      <tr><td>Accrued interest at 2025-09-30</td><td class="num">9,945.21</td></tr>
+      <tr><td>Repayment 09-30 → interest</td><td class="num">9,945.21</td></tr>
+      <tr><td>Repayment 09-30 → principal</td><td class="num">40,054.79</td></tr>
+      <tr><td>Outstanding principal after 09-30</td><td class="num">159,945.21</td></tr>
+      <tr><td>Phase 3 — 09-30 → 12-31 (92 d) @ 10%</td><td class="num">4,031.50</td></tr>
+      <tr><td>Accrued unpaid interest at as-of</td><td class="num">4,031.50</td></tr>
+      <tr><td>Total interest paid</td><td class="num">9,945.21</td></tr>
+      <tr><td>Total owed at as-of</td><td class="num">163,976.70</td></tr>
+    </table>
+    <p style="font-size:13px;color:var(--slate);margin-top:6px;"><em>Note: loan.endDate is informational only; rate transitions are driven entirely by penalty windows. Accrual is continuous across 06-30 → 07-01; the rate just switches from 5% to 10% at 07-01.</em></p>
+  </div>
+</section>
+
+<section>
+  <h2>9. Implementation</h2>
+  <p>No build step and no runtime dependencies. Classic <code>&lt;script&gt;</code> tags (not ES modules) so the app opens by double-click over <code>file://</code>, where module imports would be blocked by CORS. Concerns are split across small files:</p>
+  <ul>
+    <li><code>index.html</code> — markup only.</li>
+    <li><code>styles.css</code> — the full palette and layout.</li>
+    <li><code>js/engine.js</code> — pure computation and formatting (UMD; runs unchanged in Node for testing).</li>
+    <li><code>js/fixtures.js</code> — the 5 acceptance scenarios + expected figures (UMD; shared by the browser and Node test runners).</li>
+    <li><code>js/store.js</code> — session persistence over <code>localStorage</code>, with an in-memory fallback when storage is blocked.</li>
+    <li><code>js/render.js</code> — view layer; pure functions that take data and write DOM with <code>data-*</code> hooks.</li>
+    <li><code>js/app.js</code> — controller: owns the active session's state, wires events, debounced autosave, self-test runner, boot.</li>
+  </ul>
+  <p><strong>Sessions.</strong> Each calculation is a named session <code>{ id, name, createdAt, updatedAt, loan, penalties, repayments }</code> stored under <code>localStorage["loanCalc.sessions.v1"]</code>; the active id under <code>loanCalc.activeSession.v1</code>. On load the app resumes the active session (or the most recent, or seeds an example on first run). Edits autosave after a 400&nbsp;ms debounce. Users can switch, rename, create, duplicate, and delete sessions; at least one always remains.</p>
+  <p><strong>Testing.</strong> A <code>Run self-tests</code> button executes the 5 acceptance cases in the browser. <code>test-engine.mjs</code> runs the same cases headlessly in Node, and <code>test-dom.mjs</code> (jsdom) drives the real UI: edits, autosave, session CRUD, cross-session isolation, and persistence across a simulated reload.</p>
+</section>
+
+<p class="footer">PRD v1.0 — palette and conventions sourced from public Anthropic brand documentation, PRC Civil Code Art. 561, and 最高人民法院民间借贷司法解释 (LPR-based interest cap framework).</p>
+
+</div>
+</body>
+</html>
