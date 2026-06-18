@@ -4,7 +4,7 @@
 
 A single-page loan tracker. Enter a loan, apply custom penalty-rate (罚息) windows, log partial repayments, and see how every payment splits between interest (利息) and principal (本金), with running balances. Each calculation is saved as a named **session** you can return to later.
 
-No build step and no runtime dependencies (apart from Google Fonts). Open `index.html` and use it.
+No build step. Run it two ways: **double-click `index.html`** (saves to the browser), or **`bun start`** to serve it with a small API that writes each calculation to a git-tracked JSON file — so your history travels with `git pull`.
 
 ## Project layout
 
@@ -15,14 +15,17 @@ loan-calculator/
   js/
     engine.js       pure loan math + formatting (no DOM, no storage)
     fixtures.js     the 5 acceptance scenarios + expected figures
-    store.js        session persistence over localStorage
+    store.js        session persistence: server files (git-tracked) or localStorage
     render.js       view layer: data in, DOM out
     app.js          controller: state, events, autosave, boot
+  server.mjs        Bun dev server: serves the app + a REST API over data/sessions/
+  data/sessions/    one JSON file per saved calculation (tracked in git)
   PRD.html          product requirements (open in a browser)
   onboard.md        developer's map of the repo (start here to contribute)
-  test-engine.mjs   headless engine test (Node, no deps)
-  test-dom.mjs      DOM integration test (Node + jsdom)
-  package.json      declares the jsdom dev dependency + test scripts
+  test-engine.mjs   headless engine test (no deps)
+  test-dom.mjs      DOM integration test (jsdom, localStorage path)
+  test-server.mjs   server integration test (spawns server.mjs, drives store.js)
+  package.json      Bun scripts + the jsdom dev dependency
 ```
 
 The browser loads the JS as classic `<script>` tags in dependency order
@@ -30,32 +33,43 @@ The browser loads the JS as classic `<script>` tags in dependency order
 modules, because ES module imports are blocked by CORS when a page is opened
 directly from disk (`file://`); classic scripts work by double-click.
 
-## Open the app
+## Run it
 
-Double-click `index.html`, or from a terminal:
-
-```powershell
-start index.html        # Windows
-```
+**With history tracked in git (recommended).** Needs [Bun](https://bun.sh).
 
 ```bash
-open index.html         # macOS
-xdg-open index.html     # Linux
+bun install     # one-time: pulls jsdom (tests only)
+bun start       # serves http://localhost:5173
 ```
+
+Open http://localhost:5173 and use the app. Every saved calculation is written
+to `data/sessions/<id>.json`; commit and push those files and your history
+travels with the repo. After a `git pull` on another machine, restart the server
+and the sessions are there.
+
+**Standalone, no server.** Double-click `index.html` (or `open` / `start` /
+`xdg-open` it). It runs straight from `file://` and saves to the browser's
+`localStorage` instead — handy, but that data lives on one machine and is not
+tracked by git.
 
 ## Sessions (your data is saved)
 
-Every calculation is a session stored in the browser's `localStorage`, so your
-work is still there the next time you open the app.
+Every calculation is a named **session**. Where it is saved depends on how you
+opened the app:
 
-- The session bar at the top has a **dropdown** of all your sessions and a **Name** field for the current one.
-- **+ New** starts a fresh session (today's date, blank repayments). **Duplicate** clones the current one. **Delete** removes it (one session always remains).
-- Edits **autosave** automatically a moment after you stop typing; the status line reads "All changes saved · HH:MM:SS".
-- On launch, the app reopens the session you last used. First-time users get a seeded "Example loan".
+- **Served by `bun start`** → JSON files under `data/sessions/`, one per
+  calculation. They diff cleanly and are tracked by git, so `git pull` brings in
+  history saved elsewhere.
+- **Opened as a `file://` page** → the browser's `localStorage` (per browser,
+  per machine). If it is unavailable (private mode), the app still runs but keeps
+  data only for that visit, and the status line says so.
 
-Storage is per browser, per machine. If `localStorage` is unavailable (private
-mode, locked-down browser), the app still runs but keeps data only for that
-visit, and the status line says so.
+The session bar has a **dropdown** of all sessions and a **Name** field. **+ New**
+starts a fresh one, **Duplicate** clones it, **Delete** removes it (one always
+remains). Edits **autosave** a moment after you stop typing ("All changes saved ·
+HH:MM:SS"). On launch the app reopens the session you last used; first-time users
+get a seeded "Example loan". The first time you start the server, any sessions
+already saved in your browser are migrated up into `data/sessions/`.
 
 ## How to use
 
@@ -105,11 +119,15 @@ All arithmetic runs in full double precision; values are rounded to two decimals
 
 ## Verify the math
 
-The engine test has no dependencies:
+[Bun](https://bun.sh) runs all three test layers. Use **`bun run test`** — bare
+`bun test` invokes Bun's own runner, not these scripts.
 
 ```bash
-node test-engine.mjs
+bun install      # jsdom, for the DOM test
+bun run test     # engine 5/5 · DOM 25/25 · server 18/18
 ```
+
+The engine test (`bun run test:engine`) checks the math with no dependencies:
 
 ```
 PASS  Test 1 — Simple, no repayments, no penalty
@@ -121,16 +139,11 @@ PASS  Test 5 — Overdue with penalty + partial repayment
 5/5 passed.
 ```
 
-The DOM integration test drives the real UI (edits, autosave, session
-create/switch/duplicate/delete, cross-session isolation, persistence across a
-simulated reload). It needs jsdom:
-
-```bash
-npm install        # installs jsdom (dev dependency)
-node test-dom.mjs  # 25/25 checks passed.
-```
-
-Or run both at once with `npm test`.
+The DOM test (`test:dom`) drives the real UI in jsdom — edits, autosave, session
+create/switch/duplicate/delete, cross-session isolation, and persistence across a
+simulated reload. The server test (`test:server`) spawns `server.mjs` against a
+throwaway data dir and drives the real `store.js` client through it, proving a
+new calculation lands in a git-trackable file and is read back on a fresh load.
 
 The five scenarios and their expected figures (365-day basis):
 
@@ -146,5 +159,5 @@ The five scenarios and their expected figures (365-day basis):
 
 - Simple interest only. No compounding, no 等额本息 / 等额本金 amortization schedules.
 - Statutory caps (4x LPR, 24%/36% thresholds) are not enforced; the app computes whatever rates you enter.
-- Sessions are stored per browser on your machine; clearing browser data removes them.
+- Under the server, sessions are JSON files in `data/sessions/` (commit them to track history); in `file://` mode they are per-browser localStorage and clearing browser data removes them.
 - Not legal or financial advice.

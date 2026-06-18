@@ -6,24 +6,32 @@ where to look when you want to change something.
 
 ## 30-second summary
 
-A static, dependency-free web app. You open `index.html` by double-click (it
-runs straight from `file://`, no server). It computes how a loan accrues
-interest over time, splits each repayment into interest and principal, and shows
-running balances. Every calculation is saved as a named "session" in the
-browser's `localStorage`, so your numbers are still there next time you open it.
+A no-build web app. It computes how a loan accrues interest over time, splits
+each repayment into interest and principal, and shows running balances. Every
+calculation is saved as a named "session".
 
-There is no build step. The browser loads five plain `<script>` files in order.
-The same math files are reused by the Node tests.
+Two ways to run, and that decides where sessions are stored:
+- **`bun start`** serves the app at http://localhost:5173 and persists each
+  session as a file under `data/sessions/` — plain text, tracked by git, shared
+  via `git pull`.
+- **Double-click `index.html`** runs straight from `file://` and falls back to
+  the browser's `localStorage` — no server, but data stays on one machine.
+
+The browser loads five plain `<script>` files in order; the same math files are
+reused by the tests, which run under Bun.
 
 ## Run and test
 
 ```bash
-# open the app
-start index.html        # Windows  (open / xdg-open on mac / linux)
+# run with git-tracked history (needs Bun)
+bun install             # one time: pulls jsdom (tests only)
+bun start               # → http://localhost:5173
 
-# run the tests
-npm install             # one time: pulls jsdom (only the DOM test needs it)
-npm test                # engine test (5/5) + DOM integration test (25/25)
+# or just open it (file://, localStorage)
+open index.html         # start / xdg-open on Windows / Linux
+
+# tests — use `bun run test`, NOT `bun test` (that runs Bun's own test runner)
+bun run test            # engine 5/5 + DOM 25/25 + server 18/18
 ```
 
 ## Repo map
@@ -35,16 +43,19 @@ loan-calculator/
 ├─ js/
 │  ├─ engine.js       PURE loan math. The only file with the formulas.
 │  ├─ fixtures.js     the 5 test scenarios + their expected numbers.
-│  ├─ store.js        reads/writes your saved sessions in localStorage.
+│  ├─ store.js        reads/writes sessions: server files (git-tracked) or localStorage.
 │  ├─ render.js       turns data into HTML (the tables and the summary).
 │  └─ app.js          the brain: live state, button/keystroke handling, autosave, boot.
+├─ server.mjs         Bun dev server: serves the app + REST API over data/sessions/.
+├─ data/sessions/     one <id>.json per saved calculation. Tracked in git.
 ├─ PRD.html           the spec: palette, data model, rules, acceptance tests.
 ├─ README.md          user-facing: how to use the app.
 ├─ onboard.md         this file.
-├─ test-engine.mjs    Node test of the math (no dependencies).
-├─ test-dom.mjs       Node + jsdom test of the whole UI.
-├─ package.json       declares jsdom + the `npm test` scripts.
-└─ node_modules/      jsdom. Only needed to run test-dom.mjs.
+├─ test-engine.mjs    test of the math (no dependencies).
+├─ test-dom.mjs       jsdom test of the whole UI (localStorage path).
+├─ test-server.mjs    spawns server.mjs, drives store.js against it.
+├─ package.json       Bun scripts + the jsdom dev dependency.
+└─ node_modules/      jsdom. Only needed for the tests.
 ```
 
 ## How the pieces connect
@@ -62,7 +73,7 @@ Each attaches itself to a global namespace, so later files can call earlier ones
 |------|-------------------|----------------|:---:|:---:|
 | `engine.js` | `LoanEngine` | the formulas, date math, number formatting | no | no |
 | `fixtures.js` | `LoanFixtures` | 5 canned scenarios + `approxEqual` | no | no |
-| `store.js` | `LoanStore` | CRUD over sessions in `localStorage` | no | yes |
+| `store.js` | `LoanStore` | CRUD over sessions (server files or `localStorage`) | no | yes |
 | `render.js` | `LoanRender` | builds HTML from data, writes it into the page | yes | no |
 | `app.js` | (nothing) | owns live `state`, wires events, calls the others | yes | via `LoanStore` |
 
@@ -74,26 +85,29 @@ lighting, `app.js` is the director, `engine.js` does the arithmetic,
 
 ### Where is my data stored? (the question that started this file)
 
-**Not in `index.html`.** That file only contains empty placeholders that get
-filled in at runtime. For example the total you see on screen is just
-`<span id="sumOwed">0.00</span>`; the real number is written into it by
-JavaScript.
+**Not in `index.html`.** That file only contains empty placeholders filled in at
+runtime — the total on screen is just `<span id="sumOwed">0.00</span>`; the real
+number is written into it by JavaScript.
 
-Your data lives in two places:
+While the app is open, your live data is in memory in the `state` object inside
+`js/app.js` (`{ loan, penalties, repayments }`), plus `activeSession`, the saved
+record it belongs to.
 
-1. **While the app is open**, in memory, in the `state` object inside
-   `js/app.js`:
-   ```js
-   var state = { loan: {...}, penalties: [...], repayments: [...] };
-   ```
-   Plus `activeSession`, which is the saved record `state` belongs to.
+Between visits it is persisted by `js/store.js`, which picks a backend once at
+boot (`ready()`):
 
-2. **Between visits**, on disk, in the browser's `localStorage`, written by
-   `js/store.js` under two keys:
-   ```
-   localStorage["loanCalc.sessions.v1"]      // JSON array of every session
-   localStorage["loanCalc.activeSession.v1"] // id of the one you're viewing
-   ```
+- **Server backend** (served by `bun start`): each session is a file
+  `data/sessions/<id>.json`, read and written over `/api/sessions` by
+  `server.mjs`. These are git-tracked — that is what makes history survive a
+  `git pull`.
+- **localStorage backend** (`file://`, or the server is down): sessions live
+  under `localStorage["loanCalc.sessions.v1"]`, exactly as before.
+
+Either way the **active-session pointer** stays in
+`localStorage["loanCalc.activeSession.v1"]` — per-user view state, not something
+to track in git. `store.js` keeps an in-memory `cache` as the synchronous source
+of truth the UI reads from; each save updates the cache and fans out to whichever
+backend is active.
 
 Each session is one object:
 
@@ -190,6 +204,11 @@ app.js  wireLoanInputs()
                  render.js saveStatus("saved")  ← "All changes saved · HH:MM:SS"
 ```
 
+*Served by `bun start`, that same `save()` instead issues `PUT
+/api/sessions/<id>`, which `server.mjs` writes to `data/sessions/<id>.json`. On
+reopen, `Store.ready()` loads the folder via `GET /api/sessions` rather than
+reading localStorage — so a `git pull` shows up the next time you open the app.*
+
 On reopen:
 
 ```
@@ -201,22 +220,21 @@ app.js init()
 
 ## Your saved data: view, edit, reset
 
-To inspect what is persisted:
+**Under the server**, sessions are just files: look in `data/sessions/`, edit or
+delete the `<id>.json` files directly, or run `git log -p data/sessions/` to see
+how a loan changed over time. The server re-reads the folder on every load.
 
-1. Open the app, then open DevTools (F12).
-2. **Application** tab → **Local Storage** → the `file://` entry (or
-   `https://...` if you serve it).
-3. Look at `loanCalc.sessions.v1` (all your sessions as JSON) and
-   `loanCalc.activeSession.v1` (the active id).
+**In `file://` mode**, data is in `localStorage`. To inspect it:
 
-To reset everything, delete those two keys (or click **Delete** on each session
-in the app, which removes them one by one but always keeps one). Clearing the
-browser's site data for this origin also wipes them.
+1. Open the app, then DevTools (F12).
+2. **Application** tab → **Local Storage** → the `file://` entry.
+3. Look at `loanCalc.sessions.v1` (all sessions) and `loanCalc.activeSession.v1`
+   (the active id).
 
-If `localStorage` is blocked (private window, locked-down browser), `store.js`
-detects it in `probe()` and falls back to an in-memory list: the app still works
-for the current visit but nothing is written to disk, and the status line says
-so.
+To reset, delete those keys (or click **Delete** per session in the app — one
+always remains). If `localStorage` is blocked (private window), `store.js` detects
+it in `probe()` and falls back to an in-memory list: the app still works for the
+visit but nothing is written, and the status line says so.
 
 ## Common changes (recipes)
 
@@ -225,7 +243,7 @@ so.
 2. Add `fee` to the loan objects in `app.js` `exampleData()` / `blankData()`.
 3. Read it in `app.js` `wireLoanInputs` and write it in `syncLoanInputs`.
 4. Use it in `engine.js` `compute()`.
-5. Add an `expect` for it in a `fixtures.js` case, run `npm test`.
+5. Add an `expect` for it in a `fixtures.js` case, run `bun run test`.
 
 **Change a color.** Edit the variable in `styles.css` `:root`. It updates
 everywhere that references it.
@@ -237,14 +255,25 @@ in `engine.js` `compute()` (`basis`, `dailyRate`). Display rounding is in
 **Change the autosave delay.** `app.js` `scheduleSave()`, the `400` (ms).
 
 **Add a 6th test.** Append to `TESTS` in `js/fixtures.js`. It is picked up by
-both the in-app button and `npm test` automatically.
+both the in-app button and `bun run test` automatically.
 
 ## Conventions and gotchas
 
 - **Classic scripts, not ES modules.** There are no `import`/`export`
   statements. Opening from `file://` blocks ES module loading (CORS), so the
-  files are plain `<script>` tags that share globals (`LoanEngine`, etc.). Keep
-  it that way unless you add a server or a build step.
+  files are plain `<script>` tags that share globals (`LoanEngine`, etc.). The
+  same files must work both under the server and by double-click, so keep it that
+  way.
+- **Boot is async.** `app.js init()` awaits `Store.ready()`, which probes
+  `/api/sessions` to pick the server backend and otherwise falls back to
+  localStorage. It exposes `window.__loanReady` so the tests can await first
+  render; do not turn boot back into a synchronous function.
+- **Two backends, one synchronous API.** `store.js` keeps `list/get/save/remove`
+  synchronous via the in-memory `cache`; writes fan out to server files (a `PUT`)
+  or localStorage. The active-session pointer always stays in localStorage.
+- **Bun, not Node.** Run scripts with `bun run test` — bare `bun test` invokes
+  Bun's own test runner and finds nothing. `server.mjs` uses Bun APIs
+  (`Bun.serve`, `Bun.file`, `Bun.Glob`).
 - **UMD in `engine.js` and `fixtures.js`.** The little wrapper at the top of
   those two files lets them attach to `window` in the browser *and* be
   `require()`d by the Node tests. The other three files are browser-only.

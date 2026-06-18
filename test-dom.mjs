@@ -3,7 +3,7 @@
 // create/switch/duplicate/delete, and the self-test button. Verifies the
 // controller wiring and localStorage persistence end to end.
 //
-//   npm install --no-save jsdom && node test-dom.mjs
+//   bun install && bun test-dom.mjs
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -40,6 +40,8 @@ const activeId = () => win.localStorage.getItem('loanCalc.activeSession.v1');
 const optCount = () => $('#sessionSelect').querySelectorAll('option').length;
 
 async function run() {
+  await win.__loanReady; // boot is async now (store picks a backend before first render)
+
   // ---- 1. modules registered ----
   ok(win.LoanEngine && win.LoanStore && win.LoanRender && win.LoanFixtures, 'all modules registered on window');
 
@@ -115,6 +117,7 @@ async function run() {
   win2.localStorage.setItem('loanCalc.activeSession.v1', win.localStorage.getItem('loanCalc.activeSession.v1'));
   for (const f of ['engine', 'fixtures', 'store', 'render', 'app']) win2.eval(read(`js/${f}.js`));
   dom2.window.document.dispatchEvent(new win2.Event('DOMContentLoaded'));
+  await win2.__loanReady;
   const sameCount = win2.document.querySelectorAll('#sessionSelect option').length;
   ok(sameCount === optCount(), 'reopening the app restores all sessions', 'reopened=' + sameCount + ' vs ' + optCount());
 

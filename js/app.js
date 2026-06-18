@@ -292,9 +292,10 @@
 
   // ---- boot ----
   var booted = false;
-  function init() {
+  async function init() {
     if (booted) return; // guard against a duplicate DOMContentLoaded
     booted = true;
+    await Store.ready(); // pick a backend (server files or localStorage), load the cache
     // Resume the active session, or the most recent one, or seed an example.
     var sessions = Store.list();
     var session;
@@ -317,5 +318,6 @@
     refreshAll();
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  // Expose the boot promise so tests (and any caller) can await first render.
+  document.addEventListener('DOMContentLoaded', function () { root.__loanReady = init(); });
 })(typeof self !== 'undefined' ? self : this);

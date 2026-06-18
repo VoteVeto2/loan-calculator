@@ -1,12 +1,22 @@
 /*
- * store.js — session persistence over localStorage.
+ * store.js — session persistence with two interchangeable backends.
  *
  * A "session" is one named calculation:
  *   { id, name, createdAt, updatedAt, loan, penalties, repayments }
  *
- * Sessions survive page reloads and browser restarts (localStorage works over
- * file://). If localStorage is unavailable (private mode, locked-down browser),
- * we fall back to an in-memory list so the app still runs for the current visit.
+ * Backend is chosen once at boot, by ready():
+ *   - SERVER  — when the page is served by server.mjs, sessions live as files
+ *     under data/sessions/ (git-tracked, shared via `git pull`). Reached over a
+ *     small REST API at /api/sessions.
+ *   - LOCAL   — when opened straight from file:// (or the server is down),
+ *     sessions live in localStorage, exactly as before. If even localStorage is
+ *     unavailable, an in-memory list keeps the app working for the visit.
+ *
+ * The public API stays synchronous: an in-memory `cache` is the source of truth
+ * the UI reads from, and writes fan out to whichever backend is active. Call
+ * ready() once and await it before the first read (app.js does this at boot).
+ * The active-session pointer is always kept in localStorage — it is per-user
+ * view state, not something to track in git.
  *
  * Exposes window.LoanStore.
  */
@@ -15,6 +25,7 @@
 
   var KEY_SESSIONS = 'loanCalc.sessions.v1';
   var KEY_ACTIVE = 'loanCalc.activeSession.v1';
+  var API = '/api/sessions';
 
   function probe() {
     try {
@@ -27,12 +38,16 @@
     }
   }
 
-  var available = probe();
+  var localAvailable = probe();
   var mem = { sessions: null, active: null };
-  var cache = null;
+  var cache = null;            // in-memory source of truth for the sync API
+  var remote = false;          // true once the server backend is active
+  var available = localAvailable; // "can we persist at all?" — drives the status line
+  var readyPromise = null;
 
-  function readRaw() {
-    if (!available) return mem.sessions ? mem.sessions.slice() : [];
+  // ---- localStorage backend ----
+  function readLocal() {
+    if (!localAvailable) return mem.sessions ? mem.sessions.slice() : [];
     try {
       var raw = window.localStorage.getItem(KEY_SESSIONS);
       var parsed = raw ? JSON.parse(raw) : [];
@@ -42,15 +57,91 @@
     }
   }
 
-  function writeRaw(list) {
-    if (!available) { mem.sessions = list.slice(); return; }
+  function writeLocal(list) {
+    if (!localAvailable) { mem.sessions = list.slice(); return; }
     try {
       window.localStorage.setItem(KEY_SESSIONS, JSON.stringify(list));
     } catch (e) { /* quota or disabled; ignore */ }
   }
 
+  // ---- server backend (REST over fetch) ----
+  function serverPossible() { return typeof fetch === 'function'; }
+
+  function loadServer() {
+    var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 2000) : null;
+    var clear = function () { if (timer) clearTimeout(timer); };
+    return fetch(API, { headers: { accept: 'application/json' }, signal: ctrl ? ctrl.signal : undefined })
+      .then(function (res) {
+        clear();
+        if (!res.ok) throw new Error('GET ' + res.status);
+        return res.json();
+      }, function (e) { clear(); throw e; });
+  }
+
+  function putServer(session) {
+    return fetch(API + '/' + encodeURIComponent(session.id), {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(session),
+    }).then(function (res) { if (!res.ok) throw new Error('PUT ' + res.status); });
+  }
+
+  function delServer(id) {
+    return fetch(API + '/' + encodeURIComponent(id), { method: 'DELETE' })
+      .then(function (res) { if (!res.ok && res.status !== 404) throw new Error('DELETE ' + res.status); });
+  }
+
+  function warn(msg, e) { if (root.console && root.console.warn) root.console.warn(msg, e); }
+
+  // Write a session through to the active backend. Cache is already updated.
+  function persist(session) {
+    if (remote) putServer(session).catch(function (e) { warn('session save failed', e); });
+    else writeLocal(cache);
+  }
+
+  function persistRemoval(id) {
+    if (remote) delServer(id).catch(function (e) { warn('session delete failed', e); });
+    else writeLocal(cache);
+  }
+
+  // One-time lift: push any browser-only sessions up to a freshly connected
+  // server so nothing made in file:// mode is lost when you start the server.
+  function migrateLocalToServer() {
+    if (!localAvailable) return Promise.resolve();
+    var localList = readLocal();
+    if (!localList.length) return Promise.resolve();
+    var have = {};
+    cache.forEach(function (s) { have[s.id] = true; });
+    var missing = localList.filter(function (s) { return s && s.id && !have[s.id]; });
+    if (!missing.length) return Promise.resolve();
+    return Promise.all(missing.map(function (s) {
+      return putServer(s).then(function () { cache.push(s); }, function (e) { warn('migrate failed', e); });
+    }));
+  }
+
+  // Pick a backend and fill the cache. Resolves when the store is usable.
+  function ready() {
+    if (readyPromise) return readyPromise;
+    readyPromise = new Promise(function (resolve) {
+      if (!serverPossible()) {
+        cache = readLocal(); remote = false; available = localAvailable;
+        resolve(); return;
+      }
+      loadServer().then(function (list) {
+        cache = Array.isArray(list) ? list : [];
+        remote = true; available = true;
+        return migrateLocalToServer();
+      }).then(resolve, function () {
+        cache = readLocal(); remote = false; available = localAvailable;
+        resolve();
+      });
+    });
+    return readyPromise;
+  }
+
   function ensureCache() {
-    if (!cache) cache = readRaw();
+    if (!cache) cache = readLocal(); // lazy fallback if read before ready() resolves
     return cache;
   }
 
@@ -87,8 +178,8 @@
       if (c[i].id === session.id) { c[i] = session; found = true; break; }
     }
     if (!found) c.push(session);
-    writeRaw(c);
     setActiveId(session.id);
+    persist(session);
     return session.updatedAt;
   }
 
@@ -123,20 +214,20 @@
   function remove(id) {
     var c = ensureCache();
     cache = c.filter(function (s) { return s.id !== id; });
-    writeRaw(cache);
     var remaining = list();
     var nextId = remaining.length ? remaining[0].id : null;
     setActiveId(nextId);
+    persistRemoval(id);
     return nextId;
   }
 
   function getActiveId() {
-    if (!available) return mem.active;
+    if (!localAvailable) return mem.active;
     try { return window.localStorage.getItem(KEY_ACTIVE); } catch (e) { return null; }
   }
 
   function setActiveId(id) {
-    if (!available) { mem.active = id; return; }
+    if (!localAvailable) { mem.active = id; return; }
     try {
       if (id == null) window.localStorage.removeItem(KEY_ACTIVE);
       else window.localStorage.setItem(KEY_ACTIVE, id);
@@ -144,7 +235,9 @@
   }
 
   root.LoanStore = {
-    available: available,
+    ready: ready,
+    get available() { return available; },
+    get remote() { return remote; },
     list: list,
     count: count,
     get: get,

@@ -1,0 +1,2 @@
+# Keep data/sessions/ in the repo even when empty.
+# Each saved calculation is written here as <id>.json by server.mjs.

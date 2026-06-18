@@ -1,6 +1,9 @@
 # Dependencies (jsdom is a dev-only dependency for the DOM test)
 node_modules/
 
+# Transient atomic-write temp files from server.mjs (the saved JSON is tracked)
+data/sessions/*.tmp
+
 # Logs
 *.log
 npm-debug.log*

@@ -2,11 +2,13 @@
   "name": "loan-calculator",
   "version": "1.0.0",
   "private": true,
-  "description": "Single-page loan tracker with custom penalty-rate windows, partial-repayment allocation (interest then principal), and saved sessions.",
+  "description": "Single-page loan tracker with custom penalty-rate windows, partial-repayment allocation (interest then principal), and git-tracked saved sessions served by a Bun dev server.",
   "scripts": {
-    "test": "node test-engine.mjs && node test-dom.mjs",
-    "test:engine": "node test-engine.mjs",
-    "test:dom": "node test-dom.mjs"
+    "start": "bun server.mjs",
+    "test": "bun test-engine.mjs && bun test-dom.mjs && bun test-server.mjs",
+    "test:engine": "bun test-engine.mjs",
+    "test:dom": "bun test-dom.mjs",
+    "test:server": "bun test-server.mjs"
   },
   "devDependencies": {
     "jsdom": "^29.1.1"
