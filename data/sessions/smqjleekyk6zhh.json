@@ -1,0 +1,23 @@
+{
+  "createdAt": "2026-06-18T14:25:52.210Z",
+  "id": "smqjleekyk6zhh",
+  "loan": {
+    "asOfDate": "2025-12-31",
+    "baseRate": 0.06,
+    "dayBasis": 365,
+    "endDate": "2025-12-31",
+    "principal": 100000,
+    "startDate": "2025-01-01"
+  },
+  "name": "Example loan",
+  "penalties": [],
+  "repayments": [
+    {
+      "amount": 50000,
+      "date": "2025-07-01",
+      "id": "smqjleekyl2cd9",
+      "note": ""
+    }
+  ],
+  "updatedAt": "2026-06-18T14:25:52.210Z"
+}

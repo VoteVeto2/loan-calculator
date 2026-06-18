@@ -1,0 +1,53 @@
+{
+  "createdAt": "2026-06-18T14:25:57.729Z",
+  "id": "smqjleiu9nng5i",
+  "loan": {
+    "asOfDate": "2026-11-17",
+    "baseRate": 0.14400000000000002,
+    "dayBasis": 365,
+    "endDate": "2026-11-17",
+    "principal": 92300,
+    "startDate": "2026-05-24"
+  },
+  "name": "Zhang-081826",
+  "penalties": [],
+  "repayments": [
+    {
+      "amount": 16000,
+      "date": "2026-08-18",
+      "id": "smqjlfjw976i8o",
+      "note": "fixed-reayment"
+    },
+    {
+      "amount": 16000,
+      "date": "2026-07-18",
+      "id": "smqjlfu04vo4dn",
+      "note": "fixed-repayment"
+    },
+    {
+      "amount": 16000,
+      "date": "2026-06-18",
+      "id": "smqjlfy5kf5ybz",
+      "note": "fixed-repayment"
+    },
+    {
+      "amount": 16000,
+      "date": "2026-09-17",
+      "id": "smqjlh68xltpub",
+      "note": ""
+    },
+    {
+      "amount": 16000,
+      "date": "2026-10-17",
+      "id": "smqjlhc213lmg2",
+      "note": ""
+    },
+    {
+      "amount": 16000,
+      "date": "2026-11-17",
+      "id": "smqjlhermarw35",
+      "note": ""
+    }
+  ],
+  "updatedAt": "2026-06-18T14:28:18.463Z"
+}
