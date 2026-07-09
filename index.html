@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -14,24 +14,27 @@
   <header class="hero">
     <div class="mark"></div>
     <div>
-      <p class="eyebrow">Loan ledger · simple interest · Art. 561 allocation</p>
+      <p class="eyebrow">Private loan tracker</p>
       <h1>Loan Calculator</h1>
-      <p class="sub">Track a loan from disbursement to repayment. Apply custom 罚息 windows, log partial repayments, and see how every yuan splits between interest (利息) and principal (本金). Each calculation is saved as a session you can return to.</p>
+      <p class="sub">Enter the loan and its payments — see exactly what is still owed, counted day by day.</p>
+      <div class="hero-actions">
+        <button class="btn ghost small" id="loadExample">See a worked example</button>
+      </div>
     </div>
   </header>
 
   <section class="card session-bar full">
     <div class="session-controls">
       <div class="field session-pick">
-        <label for="sessionSelect">Session</label>
+        <label for="sessionSelect">Saved loans</label>
         <select id="sessionSelect"></select>
       </div>
       <div class="field session-name-field">
         <label for="sessionName">Name</label>
-        <input type="text" id="sessionName" maxlength="60" placeholder="Name this loan" />
+        <input type="text" id="sessionName" maxlength="60" placeholder="e.g. Loan to cousin Wei" />
       </div>
       <div class="session-actions">
-        <button class="btn ghost small" id="newSession">+ New</button>
+        <button class="btn ghost small" id="newSession">+ New loan</button>
         <button class="btn ghost small" id="dupSession">Duplicate</button>
         <button class="btn ghost small danger" id="delSession">Delete</button>
       </div>
@@ -39,106 +42,118 @@
     <div class="save-status" id="saveStatus"><span class="dot"></span></div>
   </section>
 
-  <div class="grid">
+  <div class="layout">
+    <div class="inputs-col">
 
-    <section class="card">
-      <div class="card-head"><h2>Loan setup</h2></div>
-      <div class="field-grid">
-        <div class="field">
-          <label for="principal">Loan amount (本金, CNY)</label>
-          <input type="number" id="principal" min="0" step="0.01" />
-        </div>
-        <div class="field">
-          <label for="baseRate">Annual rate (年利率, %)</label>
-          <input type="number" id="baseRate" min="0" step="0.01" />
-        </div>
-        <div class="field">
-          <label for="startDate">Start date (起息日)</label>
-          <input type="date" id="startDate" />
-        </div>
-        <div class="field">
-          <label for="endDate">Maturity (到期日)</label>
-          <input type="date" id="endDate" />
-        </div>
-        <div class="field">
-          <label for="asOfDate">As-of date (计算截止日)</label>
-          <input type="date" id="asOfDate" />
-          <span class="hint">defaults to today; can be any date ≥ start</span>
-        </div>
-        <div class="field">
-          <label>Day basis</label>
-          <div class="toggle" role="tablist" id="basisToggle">
-            <button type="button" data-val="365" class="on">365 days</button>
-            <button type="button" data-val="360">360 days</button>
+      <section class="card">
+        <div class="card-head"><h2><span class="step">1</span>The loan</h2></div>
+        <div class="field-grid">
+          <div class="field">
+            <label for="principal">Amount borrowed</label>
+            <div class="adorn pre"><span class="affix prefix">¥</span><input type="number" id="principal" min="0" step="0.01" /></div>
           </div>
-          <span class="hint">365 is the 民间借贷 convention; 360 follows the PBOC bank-loan notice.</span>
+          <div class="field">
+            <label for="baseRate">Yearly interest rate</label>
+            <div class="adorn suf"><input type="number" id="baseRate" min="0" step="0.01" placeholder="6" /><span class="affix suffix">%</span></div>
+          </div>
+          <div class="field">
+            <label for="startDate">Date borrowed</label>
+            <input type="date" id="startDate" />
+          </div>
+          <div class="field">
+            <label for="endDate">Due date</label>
+            <input type="date" id="endDate" />
+            <div class="chips" id="termChips">
+              <button type="button" data-months="6">6 months</button>
+              <button type="button" data-months="12">1 year</button>
+              <button type="button" data-months="24">2 years</button>
+              <button type="button" data-months="36">3 years</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="asOfDate">Show the balance on…</label>
+            <input type="date" id="asOfDate" />
+            <div class="chips">
+              <button type="button" id="asOfToday">Today</button>
+              <button type="button" id="asOfDue">The due date</button>
+            </div>
+          </div>
+          <details class="advanced">
+            <summary>Advanced · day basis</summary>
+            <div class="field">
+              <div class="toggle" role="tablist" id="basisToggle">
+                <button type="button" data-val="365" class="on">365 days</button>
+                <button type="button" data-val="360">360 days</button>
+              </div>
+              <span class="hint">Daily rate = yearly rate ÷ this. 365 is standard for private lending; banks often use 360.</span>
+            </div>
+          </details>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="card">
-      <div class="card-head">
-        <h2>Penalty windows <span class="count" id="penaltyCount"></span></h2>
-        <button class="btn ghost small" id="addPenalty">+ Add window</button>
-      </div>
-      <div id="penaltyList"></div>
-    </section>
+      <section class="card">
+        <div class="card-head">
+          <h2><span class="step">2</span>Paid back <span class="opt">optional</span><span class="count" id="repaymentCount"></span></h2>
+          <button class="btn small" id="addRepayment">+ Add a payment</button>
+        </div>
+        <p class="card-sub">Each payment clears interest first, then principal.</p>
+        <div id="repaymentList"></div>
+      </section>
 
-    <section class="card full">
-      <div class="card-head">
-        <h2>Repayments <span class="count" id="repaymentCount"></span></h2>
-        <button class="btn ghost small" id="addRepayment">+ Add repayment</button>
-      </div>
-      <div id="repaymentList"></div>
-    </section>
+      <section class="card">
+        <div class="card-head">
+          <h2><span class="step">3</span>Penalty rate <span class="opt">optional</span><span class="count" id="penaltyCount"></span></h2>
+          <button class="btn small" id="addPenalty">+ Add a period</button>
+        </div>
+        <p class="card-sub">A higher rate for the time the loan ran late.</p>
+        <div id="penaltyList"></div>
+      </section>
 
-    <section class="card full">
-      <div class="card-head"><h2>Summary</h2></div>
-      <div id="errorBox"></div>
-      <div class="summary">
-        <div class="stat crail">
-          <p class="label">Outstanding principal · 本金余额</p>
-          <p class="num"><span class="cur">¥</span><span id="sumPrincipal">0.00</span></p>
-        </div>
-        <div class="stat peach">
-          <p class="label">Accrued unpaid interest · 应计未付利息</p>
-          <p class="num"><span class="cur">¥</span><span id="sumAccrued">0.00</span></p>
-        </div>
-        <div class="stat">
-          <p class="label">Interest paid · 已付利息</p>
-          <p class="num"><span class="cur">¥</span><span id="sumIntPaid">0.00</span></p>
-        </div>
-        <div class="stat">
-          <p class="label">Principal paid · 已付本金</p>
-          <p class="num"><span class="cur">¥</span><span id="sumPrinPaid">0.00</span></p>
-        </div>
-      </div>
-      <div class="total-line">
-        <span>Total owed at <span id="asOfLabel">as-of date</span></span>
-        <span class="big"><span style="color:var(--cloudy);font-weight:500;font-size:14px;">¥</span> <span id="sumOwed">0.00</span></span>
-      </div>
-      <div class="total-line" id="overpaymentLine" style="display:none;">
-        <span style="color:var(--ok);">Overpayment (credit to lender)</span>
-        <span class="big" style="color:var(--ok);"><span style="color:var(--cloudy);font-weight:500;font-size:14px;">¥</span> <span id="sumOver">0.00</span></span>
-      </div>
-    </section>
+    </div>
 
-    <section class="card full">
-      <div class="card-head">
-        <h2>Schedule</h2>
-        <div class="tools">
-          <button class="btn ghost small" id="loadExample">Load example</button>
-          <button class="btn small" id="runTests">Run self-tests</button>
+    <aside class="results-col">
+      <section class="card result-panel" id="resultPanel">
+        <div class="card-head"><h2>Still owed</h2></div>
+        <div id="errorBox"></div>
+        <p class="owed-label">Total owed on <span id="asOfLabel">—</span></p>
+        <p class="owed-num" id="owedNum" aria-live="polite"><span class="cur">¥</span><span id="sumOwed">0.00</span></p>
+        <p class="paidoff-note" id="paidOffNote" style="display:none;">✓ Fully repaid</p>
+        <div class="owed-bar" id="owedBar" aria-hidden="true"><span class="seg seg-principal" id="barPrincipal"></span><span class="seg seg-interest" id="barInterest"></span></div>
+        <div class="owed-legend">
+          <p class="legend-item"><span class="swatch principal"></span><span>Principal left</span><strong>¥<span id="sumPrincipal">0.00</span></strong></p>
+          <p class="legend-item"><span class="swatch interest"></span><span>Unpaid interest</span><strong>¥<span id="sumAccrued">0.00</span></strong></p>
         </div>
-      </div>
-      <div id="scheduleArea"></div>
-      <div id="testResults" class="test-results" style="display:none;"></div>
-    </section>
-
+        <p class="plain-summary" id="plainSummary"></p>
+        <div class="paid-block">
+          <p class="paid-title">Paid back so far</p>
+          <p class="paid-row"><span>To interest</span><strong>¥<span id="sumIntPaid">0.00</span></strong></p>
+          <p class="paid-row"><span>To principal</span><strong>¥<span id="sumPrinPaid">0.00</span></strong></p>
+          <p class="paid-row total"><span>Total repaid</span><strong>¥<span id="sumPaidTotal">0.00</span></strong></p>
+          <p class="paid-row over" id="overpaymentLine" style="display:none;"><span>Overpaid</span><strong>¥<span id="sumOver">0.00</span></strong></p>
+        </div>
+        <details class="howto">
+          <summary>How is this worked out?</summary>
+          <ol>
+            <li>Interest grows daily: balance × yearly rate ÷ 365.</li>
+            <li>Payments clear interest first, then principal (Civil Code Art. 561).</li>
+            <li>Unpaid interest never compounds.</li>
+          </ol>
+        </details>
+      </section>
+    </aside>
   </div>
 
-  <p class="footer">Palette by Anthropic — Pampas, Book cloth, Peach, Crail, Cloudy, Slate, Dark. Allocation order per PRC Civil Code Art. 561 (interest first, principal second). Simple interest; not legal or financial advice.</p>
+  <section class="card full">
+    <div class="card-head"><h2>Day by day</h2></div>
+    <div id="scheduleArea"></div>
+  </section>
+
+  <section class="card full test-results" id="testResults" style="display:none;"></section>
+
+  <p class="footer">Simple interest · interest first, principal second (Civil Code Art. 561) · not legal or financial advice · <button class="linklike" id="runTests">run the built-in checks</button></p>
 </div>
+
+<a class="mobile-owed" href="#resultPanel"><span>Total owed</span><strong>¥&nbsp;<span id="sumOwedMini">0.00</span></strong></a>
 
 <script src="js/engine.js"></script>
 <script src="js/fixtures.js"></script>

@@ -64,7 +64,7 @@ opened the app:
   per machine). If it is unavailable (private mode), the app still runs but keeps
   data only for that visit, and the status line says so.
 
-The session bar has a **dropdown** of all sessions and a **Name** field. **+ New**
+The session bar has a **Saved loans** dropdown and a **Name** field. **+ New loan**
 starts a fresh one, **Duplicate** clones it, **Delete** removes it (one always
 remains). Edits **autosave** a moment after you stop typing ("All changes saved ·
 HH:MM:SS"). On launch the app reopens the session you last used; first-time users
@@ -73,37 +73,37 @@ already saved in your browser are migrated up into `data/sessions/`.
 
 ## How to use
 
-1. **Loan setup**
-   - **Loan amount** (本金): the principal disbursed, in CNY.
-   - **Annual rate** (年利率): base interest rate, entered as a percent (e.g. `6` for 6%).
-   - **Start date** (起息日): interest begins accruing on this date.
-   - **Maturity** (到期日): informational. It does not by itself change the rate; use a penalty window for that.
-   - **As-of date** (计算截止日): the date you are calculating up to. Interest accrues from start through this date.
-   - **Day basis**: `365` (民间借贷 convention) or `360` (PBOC bank-loan notice). Daily rate = annual rate / basis.
+1. **Step 1 — The loan**
+   - **Amount borrowed** (本金): the principal disbursed, in CNY.
+   - **Interest rate per year** (年利率): entered as a percent (e.g. `6` for 6%).
+   - **Date borrowed** (起息日): interest begins accruing on this date.
+   - **Due date** (到期日): informational — quick chips set it 6 months to 3 years out. It does not by itself change the rate; add a penalty period for that.
+   - **Show the balance on…** (计算截止日): the date you are calculating up to, with **Today** / **The due date** chips. Interest accrues from start through this date.
+   - **Advanced — day basis**: `365` (民间借贷 convention) or `360` (PBOC bank-loan notice). Daily rate = annual rate / basis.
 
-2. **Penalty windows** (optional)
-   - Click **+ Add window**. Each window is a date range `[start, end)` with its own annual rate that overrides the base rate inside that range.
-   - Typical use: model an overdue period by adding a window that starts on the maturity date at the higher 罚息 rate.
-   - The default new window spans the loan period at 1.5x the base rate; edit as needed.
-   - If windows overlap, the one added later wins.
-
-3. **Repayments** (optional)
-   - Click **+ Add repayment**. Enter a date and amount. Each repayment is allocated in this order (PRC Civil Code Art. 561):
+2. **Step 2 — Money paid back** (optional)
+   - Click **+ Add a payment**. Enter a date and amount. Each payment is allocated in this order (PRC Civil Code Art. 561):
      1. **Interest first**: pays down accrued unpaid interest.
      2. **Principal next**: any remainder reduces the principal.
      3. **Overpayment**: anything beyond principal + interest is shown as a credit.
-   - Repayments before the start date are flagged and ignored. Repayments after the as-of date are flagged and not yet applied.
+   - Payments before the start date are flagged and ignored. Payments after the balance date are flagged and not yet applied.
+
+3. **Step 3 — Penalty rate** (罚息, optional)
+   - Click **+ Add a period**. Each period is a date range `[start, end)` with its own annual rate that overrides the base rate inside that range.
+   - Typical use: model an overdue period by adding a period that starts on the due date at the higher 罚息 rate.
+   - The default new period spans the loan period at 1.5x the base rate; edit as needed.
+   - If periods overlap, the one added later wins.
 
 4. **Read the results**
-   - **Summary** shows four figures: outstanding principal, accrued unpaid interest, total interest paid, total principal paid, plus the total owed at the as-of date.
-   - **Schedule** is a chronological ledger. Each accrual row shows the day count, rate, and interest added for that segment; each repayment row shows the interest/principal split and the resulting balances.
+   - The sticky **Still owed** panel shows the total owed on the balance date, a bar splitting it into principal left vs unpaid interest, a plain-English recap sentence, and what has been paid back so far. On narrow screens a fixed bottom bar mirrors the total.
+   - **Day-by-day detail** is a chronological ledger. Each accrual row shows the day count, rate, and interest added for that segment; each payment row shows the interest/principal split and the resulting balances.
 
 Everything recomputes live as you type. There is no Calculate button.
 
 ### Shortcuts
 
-- **Load example** creates a new session containing a 100,000 loan at 6% with a single 50,000 repayment on 2025-07-01 (non-destructive — it does not overwrite your current session).
-- **Run self-tests** executes the 5 acceptance scenarios inside the browser and prints pass/fail for each.
+- **See a worked example** (in the header) creates a new session containing a 100,000 loan at 6% with a single 50,000 repayment on 2025-07-01 (non-destructive — it does not overwrite your current session).
+- **Run the built-in checks** (in the footer) executes the 5 acceptance scenarios inside the browser and prints pass/fail for each.
 
 ## How interest is computed
 

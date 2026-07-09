@@ -65,7 +65,7 @@
     var host = $('#penaltyList');
     $('#penaltyCount').textContent = rows.length ? '· ' + rows.length : '';
     if (!rows.length) {
-      host.innerHTML = '<p class="list-empty">No penalty windows. The base rate applies to the entire period.</p>';
+      host.innerHTML = '<p class="list-empty">None — the base rate applies throughout.</p>';
       return;
     }
     var body = rows.map(function (p) {
@@ -78,9 +78,9 @@
     }).join('');
     host.innerHTML =
       '<table class="list"><thead><tr>' +
-        '<th style="width:32%">Window start</th>' +
-        '<th style="width:32%">Window end</th>' +
-        '<th style="width:24%">Annual rate (%)</th>' +
+        '<th style="width:32%">From (incl.)</th>' +
+        '<th style="width:32%">Until (excl.)</th>' +
+        '<th style="width:24%">Rate per year (%)</th>' +
         '<th style="width:12%"></th>' +
       '</tr></thead><tbody>' + body + '</tbody></table>';
   }
@@ -89,7 +89,7 @@
     var host = $('#repaymentList');
     $('#repaymentCount').textContent = rows.length ? '· ' + rows.length : '';
     if (!rows.length) {
-      host.innerHTML = '<p class="list-empty">No repayments yet. Add one to see how it splits between interest and principal.</p>';
+      host.innerHTML = '<p class="list-empty">No payments yet.</p>';
       return;
     }
     var body = rows.map(function (r) {
@@ -102,8 +102,8 @@
     }).join('');
     host.innerHTML =
       '<table class="list"><thead><tr>' +
-        '<th style="width:30%">Repayment date</th>' +
-        '<th style="width:30%">Amount (CNY)</th>' +
+        '<th style="width:30%">Date paid</th>' +
+        '<th style="width:30%">Amount (¥)</th>' +
         '<th style="width:30%">Note</th>' +
         '<th style="width:10%"></th>' +
       '</tr></thead><tbody>' + body + '</tbody></table>';
@@ -112,18 +112,18 @@
   function schedule(result) {
     var host = $('#scheduleArea');
     if (result.errors.length) {
-      host.innerHTML = '<p class="empty-schedule">Resolve the errors above to see the ledger.</p>';
+      host.innerHTML = '<p class="empty-schedule">Fix the flagged items to see the detail.</p>';
       return;
     }
     if (!result.ledger.length) {
-      host.innerHTML = '<p class="empty-schedule">Add a loan to see the schedule.</p>';
+      host.innerHTML = '<p class="empty-schedule">Enter a loan to see the detail.</p>';
       return;
     }
     var rows = result.ledger.map(function (row) {
       if (row.type === 'start') {
         return '<tr class="boundary">' +
           '<td class="date">' + row.date + '</td>' +
-          '<td><span class="tag start">Loan start</span></td>' +
+          '<td><span class="tag start">Borrowed</span></td>' +
           '<td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>' +
           '<td class="num">' + fmtMoney(row.principal) + '</td>' +
           '<td class="num">' + fmtMoney(row.accrued) + '</td></tr>';
@@ -131,7 +131,7 @@
       if (row.type === 'accrual') {
         return '<tr class="accrual">' +
           '<td class="date">' + row.from + ' → ' + row.to + '</td>' +
-          '<td><span class="tag">Accrual</span></td>' +
+          '<td><span class="tag">Interest builds</span></td>' +
           '<td class="num">' + row.days + '</td>' +
           '<td class="num">' + fmtPct(row.rate) + '</td>' +
           '<td class="num amt-pos">+' + fmtMoney(row.interest) + '</td>' +
@@ -140,11 +140,11 @@
           '<td class="num">' + fmtMoney(row.accruedAfter) + '</td></tr>';
       }
       if (row.type === 'repayment') {
-        var over = row.overpayment > 0 ? ' (over ' + fmtMoney(row.overpayment) + ')' : '';
+        var over = row.overpayment > 0 ? ' (over by ' + fmtMoney(row.overpayment) + ')' : '';
         var note = row.note ? ' <span style="font-style:italic;color:var(--cloudy);">' + escapeHtml(row.note) + '</span>' : '';
         return '<tr class="repayment">' +
           '<td class="date">' + row.date + '</td>' +
-          '<td><span class="tag repay">Repayment ¥' + fmtMoney(row.amount) + over + '</span>' + note + '</td>' +
+          '<td><span class="tag repay">Paid ¥' + fmtMoney(row.amount) + over + '</span>' + note + '</td>' +
           '<td class="num">—</td><td class="num">—</td>' +
           '<td class="num amt-neg">−' + fmtMoney(row.toInterest) + '</td>' +
           '<td class="num amt-neg">−' + fmtMoney(row.toPrincipal) + '</td>' +
@@ -154,32 +154,94 @@
       // asof
       return '<tr class="boundary">' +
         '<td class="date">' + row.date + '</td>' +
-        '<td><span class="tag end">As-of</span></td>' +
+        '<td><span class="tag end">Balance date</span></td>' +
         '<td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>' +
         '<td class="num">' + fmtMoney(row.principal) + '</td>' +
         '<td class="num">' + fmtMoney(row.accrued) + '</td></tr>';
     }).join('');
 
     host.innerHTML =
-      '<table class="schedule"><thead><tr>' +
+      '<div class="schedule-scroll"><table class="schedule"><thead><tr>' +
         '<th style="width:14%">Date</th>' +
-        '<th style="width:14%">Event</th>' +
+        '<th style="width:14%">What happened</th>' +
         '<th class="num" style="width:8%">Days</th>' +
         '<th class="num" style="width:10%">Rate</th>' +
         '<th class="num" style="width:14%">Interest</th>' +
-        '<th class="num" style="width:14%">→ Principal</th>' +
-        '<th class="num" style="width:13%">Outstanding</th>' +
-        '<th class="num" style="width:13%">Accrued unpaid</th>' +
-      '</tr></thead><tbody>' + rows + '</tbody></table>';
+        '<th class="num" style="width:14%">Principal</th>' +
+        '<th class="num" style="width:13%">Principal left</th>' +
+        '<th class="num" style="width:13%">Interest owing</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
 
-  function summary(result, asOfDate) {
+  // One trimmed percent for prose ("6%" not "6.00%").
+  function prosePct(r) {
+    return parseFloat((r * 100).toFixed(2)) + '%';
+  }
+
+  // Plain-English one-paragraph recap of the whole calculation.
+  function plainSentence(result, state) {
+    var L = state.loan;
+    var parts = [];
+    parts.push('Borrowed ¥' + fmtMoney(L.principal) + ' on ' + L.startDate + ' at ' + prosePct(L.baseRate) + ' a year.');
+    var validPenalties = (state.penalties || []).filter(function (p) {
+      return p.start && p.end && p.start < p.end && isFinite(p.rate);
+    });
+    if (validPenalties.length) {
+      parts.push('A penalty rate applies during ' + validPenalties.length + (validPenalties.length === 1 ? ' period.' : ' periods.'));
+    }
+    var days = E.dayDiff(L.startDate, L.asOfDate);
+    var reps = (state.repayments || []).filter(function (r) {
+      return r.date && isFinite(r.amount) && r.amount > 0 && r.date >= L.startDate && r.date <= L.asOfDate;
+    });
+    var paid = result.totalInterestPaid + result.totalPrincipalPaid + result.overpayment;
+    if (reps.length) {
+      parts.push('Over ' + days + ' days, ' + reps.length + (reps.length === 1 ? ' payment' : ' payments') +
+        ' totalling ¥' + fmtMoney(paid) + (reps.length === 1 ? ' was' : ' were') + ' made.');
+    } else {
+      parts.push('No payments over these ' + days + ' days.');
+    }
+    if (result.totalOwedAsOf > 0.005) {
+      parts.push('¥' + fmtMoney(result.totalOwedAsOf) + ' is still owed.');
+    } else {
+      parts.push('The loan is fully repaid.');
+    }
+    return parts.join(' ');
+  }
+
+  function summary(result, state) {
+    var asOfDate = state.loan ? state.loan.asOfDate : null;
+    var owed = result.totalOwedAsOf;
+    var hasErrors = result.errors.length > 0;
+
     $('#sumPrincipal').textContent = fmtMoney(result.outstandingPrincipal);
     $('#sumAccrued').textContent = fmtMoney(result.accruedUnpaidInterest);
     $('#sumIntPaid').textContent = fmtMoney(result.totalInterestPaid);
     $('#sumPrinPaid').textContent = fmtMoney(result.totalPrincipalPaid);
-    $('#sumOwed').textContent = fmtMoney(result.totalOwedAsOf);
-    $('#asOfLabel').textContent = asOfDate || 'as-of date';
+    $('#sumPaidTotal').textContent = fmtMoney(result.totalInterestPaid + result.totalPrincipalPaid + result.overpayment);
+    $('#sumOwed').textContent = fmtMoney(owed);
+    $('#sumOwedMini').textContent = fmtMoney(owed);
+    $('#asOfLabel').textContent = asOfDate || '—';
+
+    // Breakdown bar: how the owed total splits between principal and interest.
+    var bar = $('#owedBar');
+    if (!hasErrors && owed > 0.005) {
+      var pPct = Math.max(0, Math.min(100, (result.outstandingPrincipal / owed) * 100));
+      $('#barPrincipal').style.width = pPct + '%';
+      $('#barInterest').style.width = (100 - pPct) + '%';
+      bar.style.display = 'flex';
+    } else {
+      bar.style.display = 'none';
+    }
+
+    var paidOff = !hasErrors && owed <= 0.005;
+    $('#paidOffNote').style.display = paidOff ? 'block' : 'none';
+    $('#owedNum').classList.toggle('ok', paidOff);
+
+    var plain = $('#plainSummary');
+    var sentence = hasErrors ? '' : plainSentence(result, state);
+    plain.textContent = sentence;
+    plain.style.display = sentence ? 'block' : 'none';
+
     if (result.overpayment > 0.005) {
       $('#overpaymentLine').style.display = 'flex';
       $('#sumOver').textContent = fmtMoney(result.overpayment);
@@ -187,7 +249,7 @@
       $('#overpaymentLine').style.display = 'none';
     }
     var box = $('#errorBox');
-    if (result.errors.length) {
+    if (hasErrors) {
       box.innerHTML = '<div class="error-list"><ul>' +
         result.errors.map(function (e) { return '<li>' + escapeHtml(e) + '</li>'; }).join('') +
         '</ul></div>';

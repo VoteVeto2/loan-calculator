@@ -29,25 +29,7 @@
       "date": "2026-06-18",
       "id": "smqjlfy5kf5ybz",
       "note": "fixed-repayment"
-    },
-    {
-      "amount": 16000,
-      "date": "2026-09-17",
-      "id": "smqjlh68xltpub",
-      "note": ""
-    },
-    {
-      "amount": 16000,
-      "date": "2026-10-17",
-      "id": "smqjlhc213lmg2",
-      "note": ""
-    },
-    {
-      "amount": 16000,
-      "date": "2026-11-17",
-      "id": "smqjlhermarw35",
-      "note": ""
     }
   ],
-  "updatedAt": "2026-06-18T14:28:18.463Z"
+  "updatedAt": "2026-07-09T13:59:49.038Z"
 }

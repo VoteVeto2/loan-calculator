@@ -22,9 +22,13 @@
     var tz = d.getTimezoneOffset() * 60000;
     return new Date(d - tz).toISOString().slice(0, 10);
   }
-  function addYearsISO(iso, n) {
+  // Add n calendar months, clamping the day to the target month's length
+  // (e.g. 2025-01-31 + 1 month = 2025-02-28).
+  function addMonthsISO(iso, n) {
     var p = (iso || todayISO()).split('-').map(Number);
-    var d = new Date(Date.UTC(p[0] + n, p[1] - 1, p[2]));
+    var d = new Date(Date.UTC(p[0], p[1] - 1 + n, 1));
+    var last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+    d.setUTCDate(Math.min(p[2], last));
     return d.toISOString().slice(0, 10);
   }
 
@@ -39,7 +43,7 @@
   function blankData() {
     var start = todayISO();
     return {
-      loan: { principal: 100000, baseRate: 0.06, startDate: start, endDate: addYearsISO(start, 1), asOfDate: start, dayBasis: 365 },
+      loan: { principal: 100000, baseRate: 0.06, startDate: start, endDate: addMonthsISO(start, 12), asOfDate: start, dayBasis: 365 },
       penalties: [],
       repayments: [],
     };
@@ -59,7 +63,7 @@
 
   function recompute() {
     var result = E.compute(state);
-    Render.summary(result, state.loan.asOfDate);
+    Render.summary(result, state);
     Render.schedule(result);
   }
 
@@ -202,6 +206,25 @@
         syncLoanInputs();
         onEdit();
       });
+    });
+    // Quick-set chips: due date from a term, balance date from today / the due date.
+    $('#termChips').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-months]');
+      if (!b) return;
+      state.loan.endDate = addMonthsISO(state.loan.startDate || todayISO(), Number(b.dataset.months));
+      syncLoanInputs();
+      onEdit();
+    });
+    $('#asOfToday').addEventListener('click', function () {
+      state.loan.asOfDate = todayISO();
+      syncLoanInputs();
+      onEdit();
+    });
+    $('#asOfDue').addEventListener('click', function () {
+      if (!state.loan.endDate) return;
+      state.loan.asOfDate = state.loan.endDate;
+      syncLoanInputs();
+      onEdit();
     });
   }
 
